@@ -1,0 +1,151 @@
+---
+title: "CompostDataEntry"
+author: "Phoebe Jefcoats"
+date: '2023-02-20'
+output: html_document
+---
+
+```{r, echo = FALSE, message = FALSE}
+# Set the environment
+library(tidyverse, quietly = TRUE)
+library(lubridate, quietly = TRUE)
+library(here)
+```
+
+```{r, echo = FALSE}
+# Enter latest data.  It will be appended to existing files.
+# Fields are commented out by default, uncomment to add
+
+# Bokashi Bin
+# Add date(s) with format 27Oct2022
+Date <- dmy('13Oct2025')
+# Add contribution(s) with format 1 + 7.3/16
+Pounds <- c(2 + 11.6/16)
+# Specify type
+BinType <- rep('Bokashi', length(Date))
+BokashiTotals <- tibble(BinType, Date, Pounds)
+
+# Add events
+Date <- dmy('13Oct2025')
+Event <- c('New Bucket')
+BinType <- c('Bokashi')
+Events <- tibble(BinType, Date, Event)
+BokashiTotals <- full_join(BokashiTotals, Events, by = c('Date', 'BinType'))
+
+# Worm Bin
+# Add date(s) with format 4Nov2022
+Date <- dmy('12Oct2025')
+# Add contribution(s) with format 1 + 2.2/16
+Pounds <- c(4 + 7.0/16)
+# Specify type 
+BinType <- rep('Worm', length(Date))
+WormTotals <- tibble(BinType, Date, Pounds)
+
+# Add events
+# Date <- dmy('5Oct2025')
+# Event <- c('New Tier')
+# BinType <- c('Worm')
+# Events <- tibble(BinType, Date, Event)
+# WormTotals <- full_join(WormTotals, Events, by = c('Date', 'BinType'))
+
+# Tumbler Bin
+# Add date(s) with format 30Oct2022
+Date <- dmy('13Oct2025')
+# Add contribution(s) with format 1 + 2.2/16
+# Default value is 2
+Pounds <- c(4)
+# Specify type
+BinType <- rep('Tumbler', length(Date))
+TumblerTotals <- tibble(BinType, Date, Pounds)
+
+# Add events
+Date <- dmy('13Oct2025')
+Event <- c('Added Bokashi')
+# Event <- c(NA)
+BinType <- rep('Tumbler', length(Date))
+Events <- tibble(BinType, Date, Event)
+TumblerTotals <- full_join(TumblerTotals, Events, by = c('Date', 'BinType'))
+
+# Harvest
+Date <- dmy('13Oct2025')
+BinType <- rep('Tumbler', length(Date))
+Gallons <- c(1.25*2)
+TumblerHarvest <- tibble(BinType, Date, Gallons)
+TumblerTotals <- full_join(TumblerTotals, TumblerHarvest, by = c('Date', 'BinType'))
+
+# Date <- dmy('5Oct2025')
+# BinType <- c('Worm')
+# Gallons <- c(1.25*1.75)
+# WormHarvest <- tibble(BinType, Date, Gallons)
+# WormTotals <- full_join(WormTotals, WormHarvest, by = c('Date', 'BinType'))
+
+#Save data
+write_csv(BokashiTotals, file = 'BokashiTotals.csv', append = TRUE)
+write_csv(WormTotals, file = 'WormTotals.csv', append = TRUE)
+write_csv(TumblerTotals, file = 'TumblerTotals.csv', append = TRUE)
+```
+
+
+```{r, echo = FALSE}
+# # This part builds the initial csvs and saves them.  It will be commented out after the first run and moved to the end of the script.
+# 
+# # Bokashi Bin
+# Date <- dmy('27Oct2022', '30Oct2022',
+#             '5Nov2022', '13Nov2022', '20Nov2022', '25Nov2022',
+#             '4Dec2022', '11Dec2022', '20Dec2022', '24Dec2022', '31Dec2022',
+#             '6Jan2023', '27Jan2023',
+#             '5Feb2023', '12Feb2023', '19Feb2023')
+# Pounds <- c(1 + 7.3/16, 2 + 15.4/16,
+#             2 + 2.2/16, 2 + 3.4/16, 2 + 1.9/16, 5 + 6.1/16,
+#             2 + 2.3/16, 1 + 5.9/16, 1 + 13.3/16, 2 + 9.7/16, 2 + 15.8/16,
+#             5 + 12.2/16, 3 + 0.7/16,
+#             1 + 6.7/16, 1 + 3.7/16, 2 + 0.3/16)
+# BinType <- rep('Bokashi', length(Date))
+# BokashiTotals <- tibble(BinType, Date, Pounds)
+# # Events
+# Date <- dmy('27Oct2022', '6Jan2023', '27Jan2023')
+# Event <- c('New Bucket', 'Full Bucket', 'New Bucket')
+# BinType <- c('Bokashi', 'Bokashi', 'Bokashi')
+# Events <- tibble(BinType, Date, Event)
+# BokashiTotals <- full_join(BokashiTotals, Events, by = c('Date', 'BinType'))
+# 
+# # Worm Bin
+# Date <- dmy('4Nov2022', '6Nov2022', '12Nov2022', '19Nov2022', '26Nov2022',
+#               '3Dec2022', '10Dec2022', '17Dec2022', '23Dec2022', '30Dec2022',
+#               '7Jan2023', '14Jan2023', '20Jan2023', '27Jan2023',
+#               '4Feb2023', '11Feb2023', '18Feb2023')
+# Pounds <- c(7.5/16, 17/16, 1 + 2.2/16, 1 + 2.4/16, 1 + 5.4/16,
+#               1 + 9.9/16, 2 + 1.1/16, 2, 1 + 11/16, 2 + 1.4/16,
+#               3 + 2.5/16, 2 + 5.3/16, 2 + 13/16, 2 + 8.3/16,
+#               3 + 8.7/16, 2 + 13.1/16, 3 + 13.3/16)
+# BinType <- rep('Worm', length(Date))
+# WormTotals <- tibble(BinType, Date, Pounds)
+# # Events
+# Date <- dmy('4Nov2022', '30Dec2022')
+# Event <- c('New Tier', 'New Tier')
+# BinType <- c('Worm')
+# Events <- tibble(BinType, Date, Event)
+# WormTotals <- full_join(WormTotals, Events, by = c('Date', 'BinType'))
+# 
+# # Tumbler Bin
+# Date <- dmy('30Oct2022',
+#               '6Nov2022', '13Nov2022', '20Nov2022', '27Nov2022',
+#               '4Dec2022', '11Dec2022', '18Dec2022', '23Dec2022', '30Dec2022',
+#               '8Jan2023', '15Jan2023', '22Jan2023', '27Jan2023',
+#               '5Feb2023', '11Feb2023', '18Feb2023')
+# Pounds <- rep(2, length(Date))
+# BinType <- rep('Tumbler', length(Date))
+# TumblerTotals <- tibble(BinType, Date, Pounds)
+# # Events
+# Date <- dmy('30Oct2022', '27Jan2023', '11Feb2023')
+# Event <- c('New Bin', 'Added Bokashi', 'New Bin')
+# BinType <- c('Tumbler', 'Tumbler', 'Tumbler')
+# Events <- tibble(BinType, Date, Event)
+# TumblerTotals <- full_join(TumblerTotals, Events, by = c('Date', 'BinType'))
+# 
+# # Save data
+# write_csv(BokashiTotals, file = 'BokashiTotals.csv', append = FALSE)
+# write_csv(WormTotals, file = 'WormTotals.csv', append = FALSE)
+# write_csv(TumblerTotals, file = 'TumblerTotals.csv', append = FALSE)
+```
+

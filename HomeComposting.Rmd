@@ -1,0 +1,283 @@
+---
+title: "Home composting totals"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r global, include = FALSE}
+#Set the environment
+library(tidyverse)
+library(lubridate)
+library(here)
+library(plotly)
+library(flexdashboard)
+
+# Load data
+BokashiTotals <- read_csv('BokashiTotals.csv', show_col_types = FALSE)
+WormTotals <- read_csv('WormTotals.csv', show_col_types = FALSE)
+TumblerTotals <- read_csv('TumblerTotals.csv', show_col_types = FALSE)
+
+# Add a column for the cumulative total
+Cumulative <- rep(NA, dim(BokashiTotals)[1])
+Cumulative[1] <- BokashiTotals$Pounds[1]
+for (r in seq(2, dim(BokashiTotals)[1], 1)){
+  Cumulative[r] <- Cumulative[r-1] + BokashiTotals$Pounds[r]
+}
+BokashiTotals <- BokashiTotals %>% add_column(Cumulative)
+
+Cumulative <- rep(NA, dim(WormTotals)[1])
+CumHarvest <- rep(NA, dim(WormTotals)[1])
+Cumulative[1] <- WormTotals$Pounds[1]
+CumHarvest[1] <- WormTotals$Gallons[1]
+for (r in seq(2, dim(WormTotals)[1], 1)){
+  Cumulative[r] <- sum(Cumulative[r-1], WormTotals$Pounds[r], na.rm = TRUE)
+  CumHarvest[r] <- sum(CumHarvest[r-1], WormTotals$Gallons[r], na.rm = TRUE)
+}
+WormTotals <- WormTotals %>% add_column(Cumulative)
+WormTotals <- WormTotals %>% add_column(CumHarvest)
+
+# Arrange by date first, to avoid weirdness
+TumblerTotals <- arrange(TumblerTotals, Date)
+
+
+Cumulative <- rep(NA, dim(TumblerTotals)[1])
+CumHarvest <- rep(NA, dim(TumblerTotals)[1])
+Cumulative[1] <- TumblerTotals$Pounds[1]
+CumHarvest[1] <- TumblerTotals$Gallons[1]
+for (r in seq(2, dim(TumblerTotals)[1], 1)){
+  Cumulative[r] <- sum(Cumulative[r-1], TumblerTotals$Pounds[r], na.rm = TRUE)
+  CumHarvest[r] <- sum(CumHarvest[r-1], TumblerTotals$Gallons[r], na.rm = TRUE)
+}
+TumblerTotals <- TumblerTotals %>% add_column(Cumulative)
+TumblerTotals <- TumblerTotals %>% add_column(CumHarvest)
+
+# We need to combine all these tibbles so that we can plot them together
+CompostingTotals <- bind_rows(BokashiTotals, WormTotals, TumblerTotals)
+
+# Put in order by time then bin type
+CompostingTotals <- arrange(CompostingTotals, Date, BinType)
+
+# Let's also calculate totals across bins, weekly and cumulative
+# Thanks to https://stackoverflow.com/questions/14454476/get-the-difference-between-dates-in-terms-of-weeks-months-quarters-and-years for the help here
+# Calculate the time span between the beginning of the time span and now
+# Turn it intoer a number and round.
+# Then add one for nice graphing
+t_1 <- dmy('24Oct2022')
+t_d <- today()
+t_s <- round(as.numeric(difftime(t_d, t_1, units = "weeks")), digits = 0)
+wks <- dmy('24Oct2022') + weeks(0:t_s + 1)
+
+Pounds <- rep(NA, length(wks) - 1)
+for (w in seq(1, length(wks) - 1, 1)) {
+  # Determine week and find obs within it
+  int <- interval(wks[w], wks[w+1] - days(1))
+  dt_idx <- which(CompostingTotals$Date %within% int)
+  wk_cpst <- CompostingTotals[dt_idx,]
+  
+  # Get categorical totals within week
+  if (length(dt_idx) > 0) {
+    wk_sum <- wk_cpst %>% 
+    group_by(BinType) %>%
+    summarise(T_Pound = sum(Pounds, na.rm = TRUE))
+    
+    # Add them to the time series
+    Pounds[w] <- sum(wk_sum$T_Pound, na.rm = TRUE)
+  }
+}
+
+Gallons <- rep(NA, length(wks) - 1)
+for (w in seq(1, length(wks) - 1, 1)) {
+  # Determine week and find obs within it
+  int <- interval(wks[w], wks[w+1] - days(1))
+  dt_idx <- which(CompostingTotals$Date %within% int)
+  wk_cpst <- CompostingTotals[dt_idx,]
+  
+  # Get categorical totals within week
+  if (length(dt_idx) > 0) {
+    wk_sum <- wk_cpst %>% 
+    group_by(BinType) %>%
+    summarise(T_Gallon = sum(Gallons, na.rm = TRUE))
+    
+    # Add them to the time series
+    Gallons[w] <- sum(wk_sum$T_Gallon, na.rm = TRUE)
+  }
+}
+
+Cumulative <- rep(NA, length(wks) - 1)
+Cumulative[1] <- Pounds[1]
+for (r in seq(2, length(Cumulative), 1)){
+  if (is.na(Pounds[r])) {
+    Cumulative[r] <- Cumulative[r-1]
+  } else {
+    Cumulative[r] <- Cumulative[r-1] + Pounds[r]
+  }
+}
+
+CumHarvest <- rep(0, length(wks) - 1)
+CumHarvest[1] <- Gallons[1]
+for (r in seq(2, length(CumHarvest), 1)){
+  if (is.na(Gallons[r])) {
+    CumHarvest[r] <- CumHarvest[r-1]
+  } else {
+    CumHarvest[r] <- CumHarvest[r-1] + Gallons[r]
+  }
+}
+
+Date <- wks[2:length(wks)]
+BinType <- rep('All', length(Date))
+Totals <- tibble(BinType, Date, Pounds, Cumulative, Gallons, CumHarvest)
+
+# Add to the existing tibble and sort by date and bin type
+# We need to combine all these tibbles so that we can plot them together
+CompostingTotals <- bind_rows(CompostingTotals, Totals)
+
+# Put in order by time then bin type
+CompostingTotals <- arrange(CompostingTotals, Date, BinType)
+```
+
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+# Define inputs
+choices <- sort(unique(CompostingTotals$BinType), decreasing =TRUE)
+yn <- c('Yes', 'No')
+selectInput('bin_type', label = 'Select compost bin type(s)', choices = c(choices), multiple = TRUE, selected = c('Worm'))
+radioButtons('show_events', label = 'Label events?', choices = c(yn))
+```
+
+Click in the box above to select the type(s) of composting bin you'd like to see.  Backspace to remove a type.  Mouse over the graphs for more details.  The __Worm__ bin composts all produce trimmings except citrus, garlic, and onions; shells from hard-boiled eggs; expired baked goods; and shredded paper.  Cardboard is composted as worm bedding.  The __Tumbler__ bin composts coffee grounds, tea bags, paper, cardboard, home-compostable packaging, and greenwaste from the garden.  Note that the totals for this bin are estimated whereas the other two are actually weighed.  The __Bokashi__ bin composts cooked food waste, meat, dairy, leftover sauces, and any other food waste that doesn't go in the other bins.  Its contents is periodically added to the tumbler bin to complete the composting process.  __All__ is the weekly sum of all three bins.  
+__Update:__ The Tumbler system was upgraded to larger troughs on 16-17 February 2025.  For consistency, we'll still refer to this a the Tumbler.
+
+Row
+-----------------------------------------------------------------------
+### Weekly amounts
+
+```{r}
+output$scatter <- renderPlotly({
+  
+  # This is cumbersome, but I can't think of another way to do it:
+  if (length(input$bin_type) == 4) {
+    Compost <- CompostingTotals
+  } else if (length(input$bin_type) == 3) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2] | BinType == input$bin_type[3])
+  } else if (length(input$bin_type) == 2) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2])
+  } else if (length(input$bin_type) == 1) {
+   Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type) 
+  }
+  
+  # Set up a color palette that's All = Black, Bokashi = Orange, 
+  # Tumbler = Brown, and Worms = Green
+  colScale <- scale_colour_manual(values = c('All' = '#000000',
+                                            'Bokashi' = '#ff7f00',
+                                            'Tumbler' = '#a65628',
+                                            'Worm' = '#4daf4a'))
+
+  p1 <- ggplot(Compost, aes(Date, Pounds, color = BinType, label = Event)) +
+   geom_jitter() +
+   colScale +
+   labs(x = " ",
+        y = "Pounds Composted") +
+   if (input$show_events == 'Yes') {
+     geom_text(size = 2, vjust = 0, nudge_y = 0.35)
+   }
+    
+  ggplotly(p1)
+  
+  # pal <- c('#000000', '#ff7f00', '#a65628', '#4daf4a')
+  # pal <- setNames(pal, c('All', 'Bokashi', 'Tumbler', 'Worm'))
+  # 
+  # p1 <- plot_ly(Compost, x = ~Date, y = ~Pounds, color = ~BinType, colors = pal,
+  #               type = "scatter", mode = "markers", height = 350)
+  # 
+})  
+plotlyOutput('scatter')
+```
+
+Row
+-----------------------------------------------------------------------
+### Cumulative Totals
+
+```{r}
+output$line <- renderPlotly({
+  
+  # This is cumbersome, but I can't think of another way to do it:
+  if (length(input$bin_type) == 4) {
+    Compost <- CompostingTotals
+  } else if (length(input$bin_type) == 3) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2] | BinType == input$bin_type[3])
+  } else if (length(input$bin_type) == 2) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2])
+  } else if (length(input$bin_type) == 1) {
+   Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type) 
+  }
+  
+  # Set up a color palette that's All = Black, Bokashi = Orange, 
+  # Tumbler = Brown, and Worms = Green
+  colScale <- scale_colour_manual(values = c('All' = '#000000',
+                                             'Bokashi' = '#ff7f00',
+                                             'Tumbler' = '#a65628',
+                                             'Worm' = '#4daf4a'))
+  
+  p2 <- ggplot(Compost, aes(Date, Cumulative, color = BinType)) +
+  geom_line() + 
+  colScale + 
+    labs(x = " ",
+         y = "Pounds Composted")
+    
+  ggplotly(p2) 
+  
+})  
+plotlyOutput('line')
+```
+
+Row
+-----------------------------------------------------------------------
+### Harvest amounts
+
+```{r}
+output$hline <- renderPlotly({
+  
+  # This is cumbersome, but I can't think of another way to do it:
+  if (length(input$bin_type) == 4) {
+    Compost <- CompostingTotals
+  } else if (length(input$bin_type) == 3) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2] | BinType == input$bin_type[3])
+  } else if (length(input$bin_type) == 2) {
+    Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type[1] | BinType == input$bin_type[2])
+  } else if (length(input$bin_type) == 1) {
+   Compost <- CompostingTotals %>% 
+    filter(BinType == input$bin_type) 
+  }
+  
+  # Set up a color palette that's All = Black, Bokashi = Orange, 
+  # Tumbler = Brown, and Worms = Green
+  colScale <- scale_colour_manual(values = c('All' = '#000000',
+                                             'Bokashi' = '#ff7f00',
+                                             'Tumbler' = '#a65628',
+                                             'Worm' = '#4daf4a'))
+  
+ p3 <- ggplot(Compost, aes(Date, CumHarvest, color = BinType)) +
+  geom_line() + 
+  colScale + 
+    labs(x = " ",
+         y = "Gallons Harvested")
+    
+  ggplotly(p3) 
+  
+})  
+plotlyOutput('hline')
+```
