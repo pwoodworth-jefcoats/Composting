@@ -3,6 +3,7 @@ title: "Home composting totals"
 runtime: shiny
 output: 
   flexdashboard::flex_dashboard:
+    sourcecode: "https://github.com/pwoodworth-jefcoats/Composting"
     orientation: rows
     vertical_layout: scroll
 ---
