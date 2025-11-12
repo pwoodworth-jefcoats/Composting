@@ -18,25 +18,29 @@ library(here)
 
 # Bokashi Bin
 # Add date(s) with format 27Oct2022
-Date <- dmy('13Oct2025')
+Date <- dmy('3Nov2025',
+            '9Nov2025')
 # Add contribution(s) with format 1 + 7.3/16
-Pounds <- c(2 + 11.6/16)
+Pounds <- c(1 + 4.3/16,
+            5 + 0.7/16)
 # Specify type
 BinType <- rep('Bokashi', length(Date))
 BokashiTotals <- tibble(BinType, Date, Pounds)
 
 # Add events
-Date <- dmy('13Oct2025')
-Event <- c('New Bucket')
-BinType <- c('Bokashi')
-Events <- tibble(BinType, Date, Event)
-BokashiTotals <- full_join(BokashiTotals, Events, by = c('Date', 'BinType'))
+# Date <- dmy('13Oct2025')
+# Event <- c('New Bucket')
+# BinType <- c('Bokashi')
+# Events <- tibble(BinType, Date, Event)
+# BokashiTotals <- full_join(BokashiTotals, Events, by = c('Date', 'BinType'))
 
 # Worm Bin
 # Add date(s) with format 4Nov2022
-Date <- dmy('12Oct2025')
+Date <- dmy('3Nov2025',
+            '9Nov2025')
 # Add contribution(s) with format 1 + 2.2/16
-Pounds <- c(4 + 7.0/16)
+Pounds <- c(3 + 6.8/16,
+            2 + 13.2/16)
 # Specify type 
 BinType <- rep('Worm', length(Date))
 WormTotals <- tibble(BinType, Date, Pounds)
@@ -50,28 +54,28 @@ WormTotals <- tibble(BinType, Date, Pounds)
 
 # Tumbler Bin
 # Add date(s) with format 30Oct2022
-Date <- dmy('13Oct2025')
+Date <- dmy('3Nov2025')
 # Add contribution(s) with format 1 + 2.2/16
 # Default value is 2
-Pounds <- c(4)
+Pounds <- c(2)
 # Specify type
 BinType <- rep('Tumbler', length(Date))
 TumblerTotals <- tibble(BinType, Date, Pounds)
 
 # Add events
-Date <- dmy('13Oct2025')
-Event <- c('Added Bokashi')
-# Event <- c(NA)
-BinType <- rep('Tumbler', length(Date))
-Events <- tibble(BinType, Date, Event)
-TumblerTotals <- full_join(TumblerTotals, Events, by = c('Date', 'BinType'))
+# Date <- dmy('13Oct2025')
+# Event <- c('Added Bokashi')
+# # Event <- c(NA)
+# BinType <- rep('Tumbler', length(Date))
+# Events <- tibble(BinType, Date, Event)
+# TumblerTotals <- full_join(TumblerTotals, Events, by = c('Date', 'BinType'))
 
 # Harvest
-Date <- dmy('13Oct2025')
-BinType <- rep('Tumbler', length(Date))
-Gallons <- c(1.25*2)
-TumblerHarvest <- tibble(BinType, Date, Gallons)
-TumblerTotals <- full_join(TumblerTotals, TumblerHarvest, by = c('Date', 'BinType'))
+# Date <- dmy('13Oct2025')
+# BinType <- rep('Tumbler', length(Date))
+# Gallons <- c(1.25*2)
+# TumblerHarvest <- tibble(BinType, Date, Gallons)
+# TumblerTotals <- full_join(TumblerTotals, TumblerHarvest, by = c('Date', 'BinType'))
 
 # Date <- dmy('5Oct2025')
 # BinType <- c('Worm')
